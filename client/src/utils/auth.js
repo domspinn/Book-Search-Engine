@@ -1,49 +1,56 @@
-// use this to decode a token and get the user's information out of it
-import decode from 'jwt-decode';
-
-// create a new class to instantiate for a user
-class AuthService {
-  // get user data
-  getProfile() {
-    return decode(this.getToken());
-  }
-
-  // check if user's logged in
-  loggedIn() {
-    // Checks if there is a saved token and it's still valid
-    const token = this.getToken();
-    return !!token && !this.isTokenExpired(token); // handwaiving here
-  }
-
-  // check if token is expired
-  isTokenExpired(token) {
-    try {
-      const decoded = decode(token);
-      if (decoded.exp < Date.now() / 1000) {
-        return true;
-      } else return false;
-    } catch (err) {
-      return false;
-    }
-  }
-
-  getToken() {
-    // Retrieves the user token from localStorage
-    return localStorage.getItem('id_token');
-  }
-
-  login(idToken) {
-    // Saves user token to localStorage
-    localStorage.setItem('id_token', idToken);
-    window.location.assign('/');
-  }
-
-  logout() {
-    // Clear user token and profile data from localStorage
-    localStorage.removeItem('id_token');
-    // this will reload the page and reset the state of the application
-    window.location.assign('/');
-  }
-}
-
-export default new AuthService();
+// Auth utility for handling token storage and user authentication
+const Auth = {
+    // Store token in localStorage upon login
+    login: function (token) {
+      localStorage.setItem('id_token', token);
+    },
+  
+    // Remove token from localStorage upon logout
+    logout: function () {
+      localStorage.removeItem('id_token');
+      window.location.assign('/');
+    },
+  
+    // Retrieve token from localStorage
+    getToken: function () {
+      return localStorage.getItem('id_token');
+    },
+  
+    // Check if the user is logged in
+    loggedIn: function () {
+      const token = this.getToken();
+      return token && !this.isTokenExpired(token) ? true : false;
+    },
+  
+    // Check if the token is expired
+    isTokenExpired: function (token) {
+      try {
+        const decoded = this.decodeToken(token);
+        // Token is expired if current time is greater than token's expiration time
+        if (decoded.exp < Date.now() / 1000) {
+          return true;
+        }
+        return false;
+      } catch (err) {
+        return false;
+      }
+    },
+  
+    // Decode the token to get user data
+    decodeToken: function (token) {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map(function (c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+          })
+          .join('')
+      );
+      return JSON.parse(jsonPayload);
+    },
+  };
+  
+  export default Auth;
+  
